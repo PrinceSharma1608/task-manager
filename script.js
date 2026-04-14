@@ -30,13 +30,10 @@ const themeIcon = themeToggle.querySelector('i');
 // Init
 function init() {
     loadTasks();
+    startSyncPolling();
     loadTheme();
     setupEventListeners();
     render();
-    
-    if (window.Notification && Notification.permission !== "granted" && Notification.permission !== "denied") {
-        Notification.requestPermission();
-    }
     
     // Check for reminders initially and every minute
     checkReminders();
@@ -59,10 +56,12 @@ function checkReminders() {
         
         // 1 Day Reminder
         if (diff > 0 && diff <= msInDay && !task.notified1Day) {
-            new Notification("Task Due Tomorrow", {
-                body: `"${task.title}" is due in less than 24 hours.`,
-                icon: 'https://cdn-icons-png.flaticon.com/512/7486/7486744.png'
-            });
+            if (diff > msInHour) {
+                new Notification("Task Due Tomorrow", {
+                    body: `"${task.title}" is due in less than 24 hours.`,
+                    icon: 'https://cdn-icons-png.flaticon.com/512/7486/7486744.png'
+                });
+            }
             task.notified1Day = true;
             needsSave = true;
         }
@@ -88,23 +87,39 @@ function loadTasks() {
     fetch('/api/tasks')
         .then(response => response.json())
         .then(data => {
-            tasks = data;
-            render();
+            if (JSON.stringify(tasks) !== JSON.stringify(data)) {
+                tasks = data;
+                render();
+            }
         })
         .catch(e => {
-            console.error("Backend unresponsive, falling back to cached persistence layer.");
-            showToast("Offline Mode. Reconnect to Wi-Fi to sync devices.", "warning");
+            console.warn("Backend unresponsive, falling back to cached persistence layer.");
+            const data = localStorage.getItem('smartTask_data');
+            if (data) {
+                try { tasks = JSON.parse(data); render(); } catch (err) { tasks = []; }
+            }
         });
 }
 
+function startSyncPolling() {
+    setInterval(() => {
+        fetch('/api/tasks').then(res => res.json()).then(data => {
+            if (JSON.stringify(tasks) !== JSON.stringify(data)) {
+                tasks = data; render();
+            }
+        }).catch(e => {}); // Silent fail on background poll
+    }, 5000);
+}
+
 function saveTasks() {
+    localStorage.setItem('smartTask_data', JSON.stringify(tasks));
     // Send full state tree safely to Python backend securely
     fetch('/api/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(tasks)
     }).catch(e => {
-        showToast("Error syncing to backend server", "danger");
+        console.warn("Error syncing to backend server");
     });
 }
 
@@ -283,9 +298,6 @@ function renderCompletedTasks(completedTasks) {
 // Logic Actions
 function addTask(e) {
     e.preventDefault();
-    if (window.Notification && Notification.permission !== "granted" && Notification.permission !== "denied") {
-        Notification.requestPermission();
-    }
     
     const id = document.getElementById('task-id').value;
     const title = document.getElementById('task-title').value.trim();
@@ -299,6 +311,8 @@ function addTask(e) {
         const index = tasks.findIndex(t => t.id === id);
         if (index > -1) {
             tasks[index] = { ...tasks[index], title, description: desc, deadline, priority };
+            tasks[index].notified1Day = false; // Reset notification flags when edited
+            tasks[index].notified1Hour = false;
             showToast('Task updated successfully');
         }
     } else {
@@ -365,6 +379,12 @@ function closeModal() { modal.classList.add('hidden'); }
 
 // Listeners
 function setupEventListeners() {
+    document.addEventListener('click', () => {
+        if (window.Notification && Notification.permission === "default") {
+            Notification.requestPermission();
+        }
+    }, { once: true });
+
     themeToggle.addEventListener('click', toggleTheme);
     addBtn.addEventListener('click', openModal);
     closeBtn.addEventListener('click', closeModal);
