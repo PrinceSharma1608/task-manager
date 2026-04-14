@@ -1,3 +1,15 @@
+// Firebase Configuration ⚠️
+const firebaseConfig = {
+    // PASTE YOUR FIREBASE CONFIGURATION HERE!
+    // apiKey: "...", authDomain: "...", projectId: "..."
+};
+
+let db = null;
+if (firebaseConfig.apiKey) {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+}
+
 // State Model
 let tasks = [];
 let currentFilter = 'all'; // 'all', 'high'
@@ -83,44 +95,42 @@ function checkReminders() {
 }
 
 function loadTasks() {
-    // Attempt backend sync
-    fetch('/api/tasks')
-        .then(response => response.json())
-        .then(data => {
+    if (db) {
+        db.collection("tasks").onSnapshot((snapshot) => {
+            const data = [];
+            snapshot.forEach(doc => data.push(doc.data()));
             if (JSON.stringify(tasks) !== JSON.stringify(data)) {
                 tasks = data;
                 render();
             }
-        })
-        .catch(e => {
-            console.warn("Backend unresponsive, falling back to cached persistence layer.");
-            const data = localStorage.getItem('smartTask_data');
-            if (data) {
-                try { tasks = JSON.parse(data); render(); } catch (err) { tasks = []; }
-            }
+        }, (e) => {
+            console.warn("Cloud Sync Error, falling back to local.");
+            loadLocalTasks();
         });
+    } else {
+        loadLocalTasks();
+        setTimeout(() => showToast("Cloud Sync Missing! Please paste Firebase Config in script.js.", "warning"), 1500);
+    }
+}
+
+function loadLocalTasks() {
+    const data = localStorage.getItem('smartTask_data');
+    if (data) {
+        try { tasks = JSON.parse(data); render(); } catch (err) { tasks = []; }
+    }
 }
 
 function startSyncPolling() {
-    setInterval(() => {
-        fetch('/api/tasks').then(res => res.json()).then(data => {
-            if (JSON.stringify(tasks) !== JSON.stringify(data)) {
-                tasks = data; render();
-            }
-        }).catch(e => {}); // Silent fail on background poll
-    }, 5000);
+    // Deprecated: Firebase onSnapshot handles real-time sync automatically!
 }
 
 function saveTasks() {
     localStorage.setItem('smartTask_data', JSON.stringify(tasks));
-    // Send full state tree safely to Python backend securely
-    fetch('/api/tasks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(tasks)
-    }).catch(e => {
-        console.warn("Error syncing to backend server");
-    });
+    if (db) {
+        tasks.forEach(task => {
+            db.collection("tasks").doc(task.id).set(task).catch(e => console.error("Cloud Save Error"));
+        });
+    }
 }
 
 function loadTheme() {
@@ -335,6 +345,7 @@ function toggleComplete(id) {
 function deleteTask(id) {
     if(confirm('Delete this task permanently?')) {
         tasks = tasks.filter(t => t.id !== id);
+        if (db) db.collection("tasks").doc(id).delete();
         saveTasks(); render();
         showToast('Task wiped securely', 'danger');
     }
