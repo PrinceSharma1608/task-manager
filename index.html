@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartTask - Premium Edition</title>
+    <!-- Favicon -->
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@200;300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="light-mode">
+    <!-- Animated fluid background -->
+    <div class="mesh-bg"></div>
+
+    <div class="app-wrapper">
+        <!-- Sidebar for Completed Tasks -->
+        <aside class="sidebar glass-panel">
+            <div class="sidebar-header">
+                <h2>History</h2>
+                <span id="completed-count" class="badge">0</span>
+            </div>
+            <div class="sidebar-content scroll-elegant" id="completed-list">
+                <!-- Completed mini-tasks appended here -->
+            </div>
+            <div id="completed-empty" class="empty-mini hidden">
+                <i class="fa-solid fa-ghost"></i>
+                <p>No completed tasks</p>
+            </div>
+        </aside>
+
+        <!-- Main Workspace for Active Tasks -->
+        <main class="main-workspace scroll-elegant">
+            <header class="glass-panel header-glass">
+                <div class="logo">
+                    <div class="logo-icon"><i class="fa-solid fa-bolt"></i></div>
+                    <h1>SmartTask</h1>
+                </div>
+                <button id="theme-toggle" class="icon-btn glass-btn" aria-label="Toggle Theme">
+                    <i class="fa-solid fa-moon"></i>
+                </button>
+            </header>
+
+            <section class="dashboard">
+                <div class="stat-card glass-panel" id="stat-total">
+                    <div class="stat-icon color-primary"><i class="fa-solid fa-layer-group"></i></div>
+                    <div class="stat-details">
+                        <span class="stat-num">0</span>
+                        <span class="stat-label">Active Tasks</span>
+                    </div>
+                </div>
+                <div class="stat-card glass-panel" id="stat-pending">
+                    <div class="stat-icon color-warning"><i class="fa-solid fa-clock"></i></div>
+                    <div class="stat-details">
+                        <span class="stat-num">0</span>
+                        <span class="stat-label">Pending</span>
+                    </div>
+                </div>
+                <div class="stat-card glass-panel" id="stat-overdue">
+                    <div class="stat-icon color-danger"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <div class="stat-details">
+                        <span class="stat-num">0</span>
+                        <span class="stat-label">Overdue</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="controls glass-panel">
+                <div class="search-bar">
+                    <i class="fa-solid fa-search"></i>
+                    <input type="text" id="search-input" placeholder="Search active tasks...">
+                </div>
+                <div class="filters">
+                    <button class="filter-btn active" data-filter="all">All Active</button>
+                    <button class="filter-btn" data-filter="high"><i class="fa-solid fa-fire"></i> High Priority</button>
+                </div>
+                <button id="add-task-btn" class="primary-btn">
+                    <i class="fa-solid fa-plus"></i> New Task
+                </button>
+            </section>
+
+            <section class="task-container">
+                <div id="task-list" class="task-list">
+                    <!-- Task Cards Go Here -->
+                </div>
+                <div id="empty-state" class="empty-state glass-panel hidden">
+                    <img src="https://cdn-icons-png.flaticon.com/512/7486/7486744.png" alt="No Tasks" />
+                    <h3>Workspace clear!</h3>
+                    <p>Enjoy the view or dispatch a new task.</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal Form (Glassmorphism) -->
+    <div id="task-modal" class="modal hidden">
+        <div class="modal-content glass-panel">
+            <div class="modal-header">
+                <h2 id="modal-title">New Task</h2>
+                <button class="close-btn glass-btn" id="close-modal"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <form id="task-form">
+                <input type="hidden" id="task-id">
+                <div class="form-group">
+                    <label for="task-title">Title <span class="required">*</span></label>
+                    <input type="text" id="task-title" required placeholder="What's the mission?">
+                </div>
+                <div class="form-group">
+                    <label for="task-desc">Description</label>
+                    <textarea id="task-desc" rows="3" placeholder="Context & details..."></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group" style="flex: 2;">
+                        <label>Deadline</label>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <input type="date" id="task-date" style="flex: 1;">
+                            <input type="time" id="task-time" style="flex: 1;">
+                        </div>
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label for="task-priority">Priority</label>
+                        <select id="task-priority" class="glass-select">
+                            <option value="low">Low (Routine)</option>
+                            <option value="medium" selected>Medium (Standard)</option>
+                            <option value="high">High (Urgent)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="glass-btn secondary-btn" id="cancel-btn">Cancel</button>
+                    <button type="submit" class="primary-btn" id="save-btn">Initialize</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="toast-container"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
